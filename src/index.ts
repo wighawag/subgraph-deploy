@@ -99,7 +99,7 @@ program
   .requiredOption('-g, --graph <url>', 'graph node url');
 program.parse(process.argv);
 
-const packagePath = path.join('node_modules', program.from);
+const packagePath = path.join('node_modules', program.from, 'files');
 let folderPath;
 if (fs.existsSync(program.from)) {
   folderPath = program.from;
