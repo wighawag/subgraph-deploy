@@ -1,0 +1,36 @@
+{
+  "name": "subgraph-deploy",
+  "version": "0.0.1",
+  "description": "deployer of compiled subgraph",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wighawag/subgraph-deploy.git"
+  },
+  "author": "Ronan Sandford",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wighawag/subgraph-deploy/issues"
+  },
+  "homepage": "https://github.com/wighawag/subgraph-deploy#readme",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "axios": "^0.20.0",
+    "commander": "^6.1.0",
+    "fs-extra": "^9.0.1",
+    "ipfs-http-client": "^47.0.1",
+    "js-yaml": "^3.14.0",
+    "recursive-readdir": "^2.2.2"
+  },
+  "devDependencies": {
+    "@types/axios": "^0.14.0",
+    "@types/commander": "^2.12.2",
+    "@types/fs-extra": "^9.0.1",
+    "@types/js-yaml": "^3.12.5",
+    "@types/node": "^14.11.2",
+    "@types/recursive-readdir": "^2.2.0",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.3"
+  }
+}
