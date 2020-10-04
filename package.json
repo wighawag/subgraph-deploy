@@ -1,6 +1,6 @@
 {
   "name": "subgraph-deploy",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "deployer of compiled subgraph",
   "repository": {
     "type": "git",

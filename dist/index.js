@@ -281,7 +281,7 @@ commander_1.default
   .requiredOption('-i, --ipfs <url>', 'ipfs node api url')
   .requiredOption('-g, --graph <url>', 'graph node url');
 commander_1.default.parse(process.argv);
-var packagePath = path_1.default.join('node_modules', commander_1.default.from);
+var packagePath = path_1.default.join('node_modules', commander_1.default.from, 'files');
 var folderPath;
 if (fs_1.default.existsSync(commander_1.default.from)) {
   folderPath = commander_1.default.from;
