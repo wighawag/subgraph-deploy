@@ -39,7 +39,7 @@ class Deployer {
       jsonrpc: '2.0',
       id: '1',
       method: 'subgraph_deploy',
-      params: [this.subgraphName, subgraphHash, ''],
+      params: [this.subgraphName, subgraphHash, undefined],
       // params: [`{"name": "${this.subgraphName}", "ipfs_hash": "${subgraphHash}"}`],
     });
 
