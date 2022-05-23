@@ -187,11 +187,11 @@ var packagePath = path_1.default.join('node_modules', commander_1.default.from, 
 var folderPath;
 if (fs_extra_1.default.existsSync(commander_1.default.from)) {
     folderPath = commander_1.default.from;
-    console.log("use folder ".concat(folderPath));
+    // console.log(`use folder ${folderPath}`);
 }
 else if (fs_extra_1.default.existsSync(packagePath)) {
     folderPath = packagePath;
-    console.log("use npm module ".concat(folderPath));
+    // console.log(`use npm module ${folderPath}`);
 }
 var subgraphYAMLPath = path_1.default.join(folderPath, 'subgraph.yaml.ipfs');
 var templatePath = path_1.default.join(folderPath, 'subgraph.yaml.ipfs.hbs');
@@ -200,7 +200,7 @@ if (commander_1.default.template && fs_extra_1.default.existsSync(templatePath))
     var tmpFolder = tmpobj.name;
     fs_extra_1.default.copySync(folderPath, tmpFolder);
     folderPath = tmpFolder;
-    console.log("use tmp folder ".concat(folderPath));
+    // console.log(`use tmp folder ${folderPath}`);
     subgraphYAMLPath = path_1.default.join(folderPath, 'subgraph.yaml.ipfs');
     templatePath = path_1.default.join(folderPath, 'subgraph.yaml.ipfs.hbs');
     if (!fs_extra_1.default.existsSync(commander_1.default.template)) {

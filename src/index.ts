@@ -106,10 +106,10 @@ const packagePath = path.join('node_modules', program.from, 'files');
 let folderPath;
 if (fs.existsSync(program.from)) {
   folderPath = program.from;
-  console.log(`use folder ${folderPath}`);
+  // console.log(`use folder ${folderPath}`);
 } else if (fs.existsSync(packagePath)) {
   folderPath = packagePath;
-  console.log(`use npm module ${folderPath}`);
+  // console.log(`use npm module ${folderPath}`);
 }
 
 let subgraphYAMLPath = path.join(folderPath, 'subgraph.yaml.ipfs');
@@ -119,7 +119,7 @@ if (program.template && fs.existsSync(templatePath)) {
   const tmpFolder = tmpobj.name;
   fs.copySync(folderPath, tmpFolder);
   folderPath = tmpFolder;
-  console.log(`use tmp folder ${folderPath}`);
+  // console.log(`use tmp folder ${folderPath}`);
   subgraphYAMLPath = path.join(folderPath, 'subgraph.yaml.ipfs');
   templatePath = path.join(folderPath, 'subgraph.yaml.ipfs.hbs');
 
