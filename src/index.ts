@@ -1,12 +1,14 @@
 import ipfsHttpClient from 'ipfs-http-client';
 // import * as yaml from 'js-yaml'; // TODO : accept build folder
-import fs from 'fs';
+import fs from 'fs-extra';
 import path from 'path';
 import recursive from 'recursive-readdir';
 import program from 'commander';
 import axios from 'axios';
+import tmp from 'tmp';
+import Handlebars from 'handlebars';
 
-class Deployer {
+ class Deployer {
   private ipfs: any;
   private graphNodeUrl: string;
   private subgraphName: string;
@@ -85,7 +87,7 @@ class Deployer {
       await this.ipfs.pin.add(hash);
       return hash;
     } catch (e) {
-      throw Error(`Failed to upload file to IPFS: ${e.message}`);
+      throw Error(`Failed to upload file to IPFS: ${(e as any).message}`);
     }
   }
 }
@@ -96,20 +98,82 @@ program
   .requiredOption('-s, --subgraph <subgraphName>', 'name of the subgraph')
   .requiredOption('-f, --from <folder or npm package>', 'folder or npm package where compiled subgraphe exist')
   .requiredOption('-i, --ipfs <url>', 'ipfs node api url')
-  .requiredOption('-g, --graph <url>', 'graph node url');
+  .requiredOption('-g, --graph <url>', 'graph node url')
+  .option('-t, --template <folder or file>', 'use template with contracts info taken from folder/file (require support for it in the subgraph package)')
 program.parse(process.argv);
 
 const packagePath = path.join('node_modules', program.from, 'files');
 let folderPath;
 if (fs.existsSync(program.from)) {
   folderPath = program.from;
+  console.log(`use folder ${folderPath}`);
 } else if (fs.existsSync(packagePath)) {
   folderPath = packagePath;
+  console.log(`use npm module ${folderPath}`);
 }
 
+let subgraphYAMLPath = path.join(folderPath, 'subgraph.yaml.ipfs');
+let templatePath = path.join(folderPath, 'subgraph.yaml.ipfs.hbs');
+if (program.template && fs.existsSync(templatePath)) {
+  const tmpobj = tmp.dirSync();
+  const tmpFolder = tmpobj.name;
+  fs.copySync(folderPath, tmpFolder);
+  folderPath = tmpFolder;
+  console.log(`use tmp folder ${folderPath}`);
+  subgraphYAMLPath = path.join(folderPath, 'subgraph.yaml.ipfs');
+  templatePath = path.join(folderPath, 'subgraph.yaml.ipfs.hbs');
+
+  if (!fs.existsSync(program.template)) {
+    console.error(`file/folder ${program.template} doest not exits`);
+    throw new Error(`cannot continue`)
+  }
+  
+  const chainNames = {
+    1: 'mainnet',
+    3: 'ropsten',
+    4: 'rinkeby',
+    5: 'goerli',
+    42: 'kovan',
+    1337: 'mainnet',
+    31337: 'mainnet',
+  };
+  // TODO use chain.network
+  
+  const stat = fs.statSync(program.template);
+  let contractsInfo;
+  if (stat.isDirectory()) {
+    const chainId = fs.readFileSync(path.join(program.template, '.chainId')).toString();
+    const chainName = chainNames[chainId];
+    if (!chainName) {
+      throw new Error(`chainId ${chainId} not know`);
+    }
+    contractsInfo = {
+      contracts: {},
+      chainName,
+    };
+    const files = fs.readdirSync(program.template, {withFileTypes: true});
+    for (const file of files) {
+      if (!file.isDirectory() && file.name.substr(file.name.length - 5) === '.json' && !file.name.startsWith('.')) {
+        const contractName = file.name.substr(0, file.name.length - 5);
+        contractsInfo.contracts[contractName] = JSON.parse(fs.readFileSync(path.join(program.template, file.name)).toString());
+      }
+    }
+  } else {
+    const contractsInfoFile = JSON.parse(fs.readFileSync(program.template).toString());
+    contractsInfo = {
+      contracts: contractsInfoFile.contracts,
+      chainName: chainNames[contractsInfoFile.chainId],
+    };
+  }
+  
+  const template = Handlebars.compile(fs.readFileSync(templatePath).toString());
+  const result = template(contractsInfo);
+  fs.writeFileSync(subgraphYAMLPath, result);
+  fs.unlinkSync(templatePath);
+}
 // console.log({folderPath, subgraph: program.subgraph});
 
-const subgraphExist = fs.existsSync(path.join(folderPath, 'subgraph.yaml.ipfs'));
+const subgraphExist = fs.existsSync(subgraphYAMLPath);
 if (!subgraphExist) {
   throw new Error(`no subgraph.yaml.ipfs in folder ${folderPath}`);
 }
@@ -117,4 +181,5 @@ if (!subgraphExist) {
 (async () => {
   const deployer = new Deployer(program.ipfs, program.graph, program.subgraph);
   const subgraphHash = await deployer.deploy(folderPath);
+  console.log(`subgraph : ${subgraphHash} deployed.`);
 })();

@@ -41,15 +41,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var ipfs_http_client_1 = __importDefault(require("ipfs-http-client"));
 // import * as yaml from 'js-yaml'; // TODO : accept build folder
-var fs_1 = __importDefault(require("fs"));
+var fs_extra_1 = __importDefault(require("fs-extra"));
 var path_1 = __importDefault(require("path"));
 var recursive_readdir_1 = __importDefault(require("recursive-readdir"));
 var commander_1 = __importDefault(require("commander"));
 var axios_1 = __importDefault(require("axios"));
+var tmp_1 = __importDefault(require("tmp"));
+var handlebars_1 = __importDefault(require("handlebars"));
 var Deployer = /** @class */ (function () {
     function Deployer(ipfsNodeUrl, graphNodeUrl, name) {
         var url = new URL(ipfsNodeUrl);
-        this.ipfs = ipfs_http_client_1.default({
+        this.ipfs = (0, ipfs_http_client_1.default)({
             protocol: url.protocol.replace(/[:]+$/, ''),
             host: url.hostname,
             port: url.port,
@@ -86,14 +88,15 @@ var Deployer = /** @class */ (function () {
                             id: '1',
                             method: 'subgraph_deploy',
                             params: [this.subgraphName, subgraphHash, undefined, undefined],
+                            // params: [`{"name": "${this.subgraphName}", "ipfs_hash": "${subgraphHash}"}`],
                         })];
                     case 6:
                         result = _a.sent();
                         if (result.status !== 200) {
-                            throw new Error("error whole deploying to graph node: " + result.statusText);
+                            throw new Error("error whole deploying to graph node: ".concat(result.statusText));
                         }
                         else if (result.data.error) {
-                            throw new Error("error whole deploying to graph node: " + JSON.stringify(result.data.error));
+                            throw new Error("error whole deploying to graph node: ".concat(JSON.stringify(result.data.error)));
                         }
                         else {
                             // console.log(result.data);
@@ -106,17 +109,17 @@ var Deployer = /** @class */ (function () {
     };
     Deployer.prototype._uploadSubgraphToIPFS = function (folderPath) {
         return __awaiter(this, void 0, void 0, function () {
-            var yamlHash, files, _i, files_1, file, hash;
+            var yamlHash, files, _i, files_2, file, hash;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, recursive_readdir_1.default(folderPath)];
+                    case 0: return [4 /*yield*/, (0, recursive_readdir_1.default)(folderPath)];
                     case 1:
                         files = _a.sent();
-                        _i = 0, files_1 = files;
+                        _i = 0, files_2 = files;
                         _a.label = 2;
                     case 2:
-                        if (!(_i < files_1.length)) return [3 /*break*/, 5];
-                        file = files_1[_i];
+                        if (!(_i < files_2.length)) return [3 /*break*/, 5];
+                        file = files_2[_i];
                         return [4 /*yield*/, this._uploadFileToIPFS(folderPath, file)];
                     case 3:
                         hash = _a.sent();
@@ -136,7 +139,7 @@ var Deployer = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             var content;
             return __generator(this, function (_a) {
-                content = fs_1.default.readFileSync(filepath);
+                content = fs_extra_1.default.readFileSync(filepath);
                 return [2 /*return*/, this._uploadToIPFS({
                         path: '/',
                         content: content,
@@ -163,7 +166,7 @@ var Deployer = /** @class */ (function () {
                         return [2 /*return*/, hash];
                     case 3:
                         e_2 = _a.sent();
-                        throw Error("Failed to upload file to IPFS: " + e_2.message);
+                        throw Error("Failed to upload file to IPFS: ".concat(e_2.message));
                     case 4: return [2 /*return*/];
                 }
             });
@@ -177,20 +180,80 @@ commander_1.default
     .requiredOption('-s, --subgraph <subgraphName>', 'name of the subgraph')
     .requiredOption('-f, --from <folder or npm package>', 'folder or npm package where compiled subgraphe exist')
     .requiredOption('-i, --ipfs <url>', 'ipfs node api url')
-    .requiredOption('-g, --graph <url>', 'graph node url');
+    .requiredOption('-g, --graph <url>', 'graph node url')
+    .option('-t, --template <folder or file>', 'use template with contracts info taken from folder/file (require support for it in the subgraph package)');
 commander_1.default.parse(process.argv);
 var packagePath = path_1.default.join('node_modules', commander_1.default.from, 'files');
 var folderPath;
-if (fs_1.default.existsSync(commander_1.default.from)) {
+if (fs_extra_1.default.existsSync(commander_1.default.from)) {
     folderPath = commander_1.default.from;
+    console.log("use folder ".concat(folderPath));
 }
-else if (fs_1.default.existsSync(packagePath)) {
+else if (fs_extra_1.default.existsSync(packagePath)) {
     folderPath = packagePath;
+    console.log("use npm module ".concat(folderPath));
+}
+var subgraphYAMLPath = path_1.default.join(folderPath, 'subgraph.yaml.ipfs');
+var templatePath = path_1.default.join(folderPath, 'subgraph.yaml.ipfs.hbs');
+if (commander_1.default.template && fs_extra_1.default.existsSync(templatePath)) {
+    var tmpobj = tmp_1.default.dirSync();
+    var tmpFolder = tmpobj.name;
+    fs_extra_1.default.copySync(folderPath, tmpFolder);
+    folderPath = tmpFolder;
+    console.log("use tmp folder ".concat(folderPath));
+    subgraphYAMLPath = path_1.default.join(folderPath, 'subgraph.yaml.ipfs');
+    templatePath = path_1.default.join(folderPath, 'subgraph.yaml.ipfs.hbs');
+    if (!fs_extra_1.default.existsSync(commander_1.default.template)) {
+        console.error("file/folder ".concat(commander_1.default.template, " doest not exits"));
+        throw new Error("cannot continue");
+    }
+    var chainNames = {
+        1: 'mainnet',
+        3: 'ropsten',
+        4: 'rinkeby',
+        5: 'goerli',
+        42: 'kovan',
+        1337: 'mainnet',
+        31337: 'mainnet',
+    };
+    // TODO use chain.network
+    var stat = fs_extra_1.default.statSync(commander_1.default.template);
+    var contractsInfo = void 0;
+    if (stat.isDirectory()) {
+        var chainId = fs_extra_1.default.readFileSync(path_1.default.join(commander_1.default.template, '.chainId')).toString();
+        var chainName = chainNames[chainId];
+        if (!chainName) {
+            throw new Error("chainId ".concat(chainId, " not know"));
+        }
+        contractsInfo = {
+            contracts: {},
+            chainName: chainName,
+        };
+        var files = fs_extra_1.default.readdirSync(commander_1.default.template, { withFileTypes: true });
+        for (var _i = 0, files_1 = files; _i < files_1.length; _i++) {
+            var file = files_1[_i];
+            if (!file.isDirectory() && file.name.substr(file.name.length - 5) === '.json' && !file.name.startsWith('.')) {
+                var contractName = file.name.substr(0, file.name.length - 5);
+                contractsInfo.contracts[contractName] = JSON.parse(fs_extra_1.default.readFileSync(path_1.default.join(commander_1.default.template, file.name)).toString());
+            }
+        }
+    }
+    else {
+        var contractsInfoFile = JSON.parse(fs_extra_1.default.readFileSync(commander_1.default.template).toString());
+        contractsInfo = {
+            contracts: contractsInfoFile.contracts,
+            chainName: chainNames[contractsInfoFile.chainId],
+        };
+    }
+    var template = handlebars_1.default.compile(fs_extra_1.default.readFileSync(templatePath).toString());
+    var result = template(contractsInfo);
+    fs_extra_1.default.writeFileSync(subgraphYAMLPath, result);
+    fs_extra_1.default.unlinkSync(templatePath);
 }
 // console.log({folderPath, subgraph: program.subgraph});
-var subgraphExist = fs_1.default.existsSync(path_1.default.join(folderPath, 'subgraph.yaml.ipfs'));
+var subgraphExist = fs_extra_1.default.existsSync(subgraphYAMLPath);
 if (!subgraphExist) {
-    throw new Error("no subgraph.yaml.ipfs in folder " + folderPath);
+    throw new Error("no subgraph.yaml.ipfs in folder ".concat(folderPath));
 }
 (function () { return __awaiter(void 0, void 0, void 0, function () {
     var deployer, subgraphHash;
@@ -201,6 +264,7 @@ if (!subgraphExist) {
                 return [4 /*yield*/, deployer.deploy(folderPath)];
             case 1:
                 subgraphHash = _a.sent();
+                console.log("subgraph : ".concat(subgraphHash, " deployed."));
                 return [2 /*return*/];
         }
     });
