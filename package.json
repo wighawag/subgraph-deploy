@@ -1,6 +1,6 @@
 {
   "name": "subgraph-deploy",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "deployer of compiled subgraph",
   "repository": {
     "type": "git",
@@ -8,6 +8,8 @@
   },
   "author": "Ronan Sandford",
   "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bugs": {
     "url": "https://github.com/wighawag/subgraph-deploy/issues"
   },
@@ -39,6 +41,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublish": "tsc"
   }
 }

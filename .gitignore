@@ -1,5 +1,5 @@
 node_modules/
-
+dist
 .vscode/*
 !.vscode/settings.json.default
 pnpm-lock.yaml

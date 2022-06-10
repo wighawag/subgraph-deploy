@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import ipfsHttpClient from 'ipfs-http-client';
 // import * as yaml from 'js-yaml'; // TODO : accept build folder
 import fs from 'fs-extra';
