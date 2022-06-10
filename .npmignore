@@ -1,0 +1,7 @@
+src
+.editorconfig
+.eslintrc.js
+.gitattributes
+.prettierrc.js
+.setup.js
+tsconfig.json
